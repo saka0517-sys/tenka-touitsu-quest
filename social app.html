@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>天下統一クエスト〜社会編〜</title>
+<style>
+  :root{
+    --bg:#f3efe4; --card:#fffdf7; --ink:#2b2622; --sub:#7a6f5e;
+    --accent:#8a1f1f; --accent2:#c0392b; --good:#2f6e3a; --bad:#8a1f1f;
+    --line:#e6dcc4; --gold:#b9892c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:-apple-system,"Hiragino Sans","Yu Gothic",sans-serif; background:var(--bg); color:var(--ink); -webkit-tap-highlight-color:transparent;}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:0 0 24px;}
+  header{padding:16px 16px 10px; position:sticky; top:0; background:var(--bg); z-index:5;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .logo{font-size:17px;font-weight:700;letter-spacing:0.02em;}
+  .stats{display:flex;gap:10px;font-size:13px;color:var(--sub);}
+  .stat-pill{background:var(--card);border:0.5px solid var(--line);border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:4px;}
+  .xpbar-wrap{background:var(--card);border-radius:20px;height:10px;overflow:hidden;border:0.5px solid var(--line);}
+  .xpbar{height:100%;background:linear-gradient(90deg,var(--gold),#e3b94f);width:0%;transition:width .4s;}
+  .screen{padding:0 16px;flex:1;display:none;}
+  .screen.active{display:block;}
+
+  .rank-box{display:flex;align-items:center;gap:10px;background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;}
+  .rank-emoji{font-size:38px;line-height:1;transition:transform .3s;}
+  .rank-emoji.bump{transform:scale(1.3) rotate(-8deg);}
+  .rank-info{flex:1;}
+  .rank-info .rank-name{font-size:13px;font-weight:700;}
+  .rank-info .rank-stage{font-size:11px;color:var(--sub);margin-top:2px;}
+  .rank-info .rank-bar-wrap{height:6px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:5px;border:0.5px solid var(--line);}
+  .rank-info .rank-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .4s;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  .level-card{background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:14px 12px;text-align:left;position:relative;}
+  .level-card .ic{font-size:24px;margin-bottom:6px;display:block;}
+  .level-card .name{font-weight:600;font-size:15px;margin-bottom:2px;}
+  .level-card .meta{font-size:12px;color:var(--sub);}
+  .level-card .acc{position:absolute;top:10px;right:10px;font-size:11px;font-weight:500;background:#f3e6c8;color:var(--gold);padding:2px 7px;border-radius:10px;}
+  .section-title{font-size:13px;color:var(--sub);margin:18px 0 8px;font-weight:600;}
+  .wide-btn{width:100%;background:var(--card);border:0.5px solid var(--line);border-radius:14px;padding:14px;text-align:left;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;}
+  .badge-count{background:#fcebeb;color:var(--bad);font-size:12px;padding:2px 8px;border-radius:10px;font-weight:500;}
+
+  .quiz-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .qcounter{font-size:13px;color:var(--sub);}
+  .timer{font-size:13px;font-weight:600;color:var(--accent);}
+  .timer.danger{color:var(--bad);}
+  .progress-track{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:18px;}
+  .progress-fill{height:100%;background:var(--gold);width:0%;transition:width .3s;}
+  .qcard{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:22px 18px;margin-bottom:16px;min-height:90px;display:flex;align-items:center;}
+  .qtext{font-size:17px;line-height:1.5;font-weight:600;}
+  .choices{display:flex;flex-direction:column;gap:10px;}
+  .choice-btn{background:var(--card);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px;text-align:left;display:flex;align-items:center;gap:10px;}
+  .choice-btn .lt{width:24px;height:24px;border-radius:50%;background:var(--bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;color:var(--sub);}
+  .choice-btn.correct{background:#e7f3e2;border-color:#4c8a2e;}
+  .choice-btn.correct .lt{background:#4c8a2e;color:#fff;border-color:#4c8a2e;}
+  .choice-btn.wrong{background:#fbe6e2;border-color:var(--accent2);}
+  .choice-btn.wrong .lt{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+  .choice-btn:disabled{opacity:0.85;}
+
+  .feedback-bar{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:14px;display:none;align-items:center;justify-content:space-between;}
+  .feedback-bar.show{display:flex;}
+  .feedback-bar.ok{background:#e7f3e2;color:#234d18;}
+  .feedback-bar.ng{background:#fbe6e2;color:#7a1f1f;}
+  .next-btn{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;}
+
+  .combo-pop{position:fixed;top:90px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s, transform .2s; pointer-events:none; z-index:150;}
+  .combo-pop.show{opacity:1;transform:translateX(-50%) translateY(6px);}
+
+  .boss-banner{background:linear-gradient(90deg,#3a2a14,#8a1f1f);color:#f3e6c8;padding:10px 14px;border-radius:12px;text-align:center;font-weight:700;margin-bottom:10px;display:none;font-size:14px;letter-spacing:0.03em;}
+  .boss-banner.show{display:block;animation:bossPulse .5s;}
+  @keyframes bossPulse{0%{transform:scale(0.85);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .qcard.boss{border:1.5px solid var(--accent);background:linear-gradient(180deg,#fffdf7,#fbe9d8);}
+
+  .float-score{position:fixed;font-size:20px;font-weight:700;color:var(--good);pointer-events:none;z-index:150;animation:floatUp 1s forwards;left:50%;top:46%;}
+  @keyframes floatUp{0%{opacity:1;transform:translate(-50%,0) scale(1);}100%{opacity:0;transform:translate(-50%,-70px) scale(1.15);}}
+
+  .confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:200;}
+
+  .result-hero{text-align:center;padding:30px 0 10px;}
+  .result-hero .big{font-size:40px;font-weight:700;margin-bottom:4px;}
+  .result-hero .label{font-size:14px;color:var(--sub);}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0;}
+  .metric-card{background:var(--card);border-radius:12px;padding:14px;text-align:center;border:0.5px solid var(--line);}
+  .metric-card .v{font-size:22px;font-weight:700;}
+  .metric-card .l{font-size:12px;color:var(--sub);margin-top:2px;}
+  .badge-unlock{background:#f3e6c8;border:0.5px solid var(--gold);border-radius:12px;padding:12px 14px;font-size:13px;color:#5a4112;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+
+  button{cursor:pointer;font-family:inherit;}
+  .btn-row{display:flex;gap:10px;}
+  .primary-btn{flex:1;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;}
+  .ghost-btn{flex:1;background:var(--card);color:var(--ink);border:0.5px solid var(--line);border-radius:12px;padding:14px;font-size:15px;}
+  .empty-note{font-size:13px;color:var(--sub);text-align:center;padding:30px 10px;}
+  .back-link{font-size:13px;color:var(--sub);margin-bottom:10px;display:inline-block;}
+
+  .collection-card{position:relative;}
+  .collection-card .count-badge{position:absolute;top:10px;right:10px;font-size:11px;font-weight:500;background:#f3e6c8;color:var(--gold);padding:2px 7px;border-radius:10px;}
+  .card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .word-card{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 4px 8px;text-align:center;font-size:11px;}
+  .word-card .wc-ic{font-size:20px;display:block;margin-bottom:3px;}
+  .word-card .wc-word{font-weight:600;font-size:10.5px;word-break:break-all;}
+  .word-card.common{border-color:#c9b98f;}
+  .word-card.rare{border-color:#5b8def;background:#eef4ff;}
+  .word-card.legendary{border-color:var(--gold);background:#fff3da;}
+  .word-card .wc-dup{font-size:10px;color:var(--sub);}
+  .collection-summary{display:flex;gap:10px;margin-bottom:14px;}
+  .collection-summary .metric-card{flex:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="topbar">
+      <div class="logo">天下統一クエスト</div>
+      <div class="stats">
+        <div class="stat-pill">🔥<span id="streakNum">0</span></div>
+        <div class="stat-pill">Lv<span id="levelNum">1</span></div>
+      </div>
+    </div>
+    <div class="xpbar-wrap"><div class="xpbar" id="xpbar"></div></div>
+  </header>
+
+  <div class="screen active" id="screen-home">
+    <div class="rank-box" id="rankBox">
+      <span class="rank-emoji" id="rankEmoji">🗡️</span>
+      <div class="rank-info">
+        <div class="rank-name" id="rankName">足軽</div>
+        <div class="rank-stage" id="rankStage">天下統一への道は長い…</div>
+        <div class="rank-bar-wrap"><div class="rank-bar" id="rankBar"></div></div>
+      </div>
+    </div>
+
+    <div class="section-title">復習</div>
+    <button class="wide-btn" id="reviewBtn" onclick="startReview()">
+      <span>❗ 間違えた問題を復習する</span>
+      <span class="badge-count" id="reviewCount">0</span>
+    </button>
+
+    <div class="section-title">出陣する国(レベルを選ぶ)</div>
+    <div class="grid" id="levelGrid"></div>
+
+    <div class="section-title">特集</div>
+    <div class="grid">
+      <button class="level-card" onclick="startQuiz('all')">
+        <span class="ic">🌏</span>
+        <div class="name">天下統一戦</div>
+        <div class="meta">全範囲から出題</div>
+      </button>
+      <button class="level-card" onclick="startQuiz('weak')">
+        <span class="ic">🎯</span>
+        <div class="name">苦手集中</div>
+        <div class="meta">正答率が低い問題</div>
+      </button>
+    </div>
+
+    <div class="section-title">仲間武将</div>
+    <button class="wide-btn collection-card" onclick="openCollection()">
+      <span>⚔️ 仲間武将一覧</span>
+      <span class="count-badge" id="collectionCount">0種</span>
+    </button>
+
+    <div class="section-title">武功(実績)</div>
+    <div class="grid" id="badgeGrid"></div>
+  </div>
+
+  <div class="screen" id="screen-quiz">
+    <a class="back-link" onclick="confirmExit()">← 退却してレベル選択へ戻る</a>
+    <div class="quiz-head">
+      <div class="qcounter" id="qcounter">1 / 10</div>
+      <div class="timer" id="timer">12</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="boss-banner" id="bossBanner">⚔️ 合戦!勝利で大量の武功とレア武将!</div>
+    <div class="qcard" id="qcard"><div class="qtext" id="qtext"></div></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback-bar" id="feedbackBar">
+      <span id="feedbackText"></span>
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">次へ →</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-result">
+    <div class="result-hero">
+      <div class="big" id="resultScore">0/10</div>
+      <div class="label">正答率 <span id="resultAcc">0%</span></div>
+    </div>
+    <div id="badgeUnlockArea"></div>
+    <div class="result-grid">
+      <div class="metric-card"><div class="v" id="resultXp">+0</div><div class="l">獲得武功</div></div>
+      <div class="metric-card"><div class="v" id="resultCombo">0</div><div class="l">最大連勝</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="ghost-btn" onclick="goHome()">レベル選択へ</button>
+      <button class="primary-btn" id="retryBtn" onclick="retrySame()">もう一度</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-collection">
+    <a class="back-link" onclick="goHome()">← ホームへ戻る</a>
+    <div class="result-hero" style="padding-top:6px;">
+      <div class="big" id="collectionBig">0種</div>
+      <div class="label">仲間にした武将の種類</div>
+    </div>
+    <div class="collection-summary">
+      <div class="metric-card"><div class="v" id="collCommon">0</div><div class="l">雑兵級</div></div>
+      <div class="metric-card"><div class="v" id="collRare">0</div><div class="l">武将級</div></div>
+      <div class="metric-card"><div class="v" id="collLegend">0</div><div class="l">大名級</div></div>
+    </div>
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+</div>
+<div class="combo-pop" id="comboPop"></div>
+<canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+
+<script>
+/* ====================== 問題データ ====================== */
+/* [問題文, [選択肢4つ], 正解index, レベル(1=地理基礎/2=歴史基礎/3=近代史・公民)] */
+const QBANK = [
+// ===== レベル1: 地理基礎 =====
+["日本の首都はどこか?", ["東京","大阪","京都","名古屋"], 0, 1],
+["日本で一番面積が大きい都道府県は?", ["北海道","岩手県","福島県","長野県"], 0, 1],
+["日本で一番人口が多い都道府県は?", ["東京都","大阪府","神奈川県","愛知県"], 0, 1],
+["富士山がある都道府県は?(主な2県)", ["静岡県と山梨県","長野県と新潟県","神奈川県と東京都","愛知県と岐阜県"], 0, 1],
+["日本列島を構成する主な島の数は?", ["4つ","3つ","5つ","6つ"], 0, 1],
+["日本で最も長い川は?", ["信濃川","利根川","木曽川","淀川"], 0, 1],
+["瀬戸内海に面さない県は?", ["岩手県","広島県","香川県","愛媛県"], 0, 1],
+["日本の標準時子午線は東経何度か?", ["135度","140度","130度","145度"], 0, 1],
+["沖縄県の県庁所在地は?", ["那覇市","石垣市","宮古島市","名護市"], 0, 1],
+["北海道の道庁所在地は?", ["札幌市","函館市","旭川市","小樽市"], 0, 1],
+["中部地方に属さない県は?", ["福岡県","長野県","静岡県","愛知県"], 0, 1],
+["近畿地方の中心都市として代表的なのは?", ["大阪市","札幌市","仙台市","福岡市"], 0, 1],
+["日本三大都市圏に入らないのは?", ["札幌圏","東京圏","大阪圏","名古屋圏"], 0, 1],
+["日本で一番高い山は?", ["富士山","北岳","槍ヶ岳","立山"], 0, 1],
+["梅雨がほとんどない地域は?", ["北海道","関東","九州","四国"], 0, 1],
+["太平洋側の気候の特徴は?", ["夏に雨が多い","冬に雨が多い","一年中乾燥","一年中雨が多い"], 0, 1],
+["日本海側の気候の特徴は?", ["冬に雪が多い","夏に雪が多い","一年中温暖","一年中乾燥"], 0, 1],
+["日本の国土面積はおよそ何万平方キロか?", ["38万","50万","20万","60万"], 0, 1],
+["世界で一番面積が大きい国は?", ["ロシア","カナダ","中国","アメリカ"], 0, 1],
+["世界で一番人口が多い国は(2020年代)?", ["インド","中国","アメリカ","インドネシア"], 0, 1],
+["アメリカ合衆国の首都は?", ["ワシントンD.C.","ニューヨーク","ロサンゼルス","シカゴ"], 0, 1],
+["フランスの首都は?", ["パリ","ロンドン","ベルリン","ローマ"], 0, 1],
+["イギリスの首都は?", ["ロンドン","パリ","ダブリン","エディンバラ"], 0, 1],
+["中国の首都は?", ["北京","上海","広州","香港"], 0, 1],
+["韓国の首都は?", ["ソウル","釜山","仁川","平壌"], 0, 1],
+["オーストラリアの首都は?", ["キャンベラ","シドニー","メルボルン","パース"], 0, 1],
+["ロシアの首都は?", ["モスクワ","サンクトペテルブルク","キエフ","ミンスク"], 0, 1],
+["ドイツの首都は?", ["ベルリン","ミュンヘン","フランクフルト","ハンブルク"], 0, 1],
+["イタリアの首都は?", ["ローマ","ミラノ","ナポリ","ベネチア"], 0, 1],
+["ブラジルの首都は?", ["ブラジリア","リオデジャネイロ","サンパウロ","サルバドール"], 0, 1],
+["エジプトの首都は?", ["カイロ","アレクサンドリア","ルクソール","ギザ"], 0, 1],
+["インドの首都は?", ["ニューデリー","ムンバイ","コルカタ","バンガロール"], 0, 1],
+["カナダの首都は?", ["オタワ","トロント","バンクーバー","モントリオール"], 0, 1],
+["スペインの首都は?", ["マドリード","バルセロナ","セビリア","バレンシア"], 0, 1],
+["世界三大洋に含まれないのは?", ["地中海","太平洋","大西洋","インド洋"], 0, 1],
+["六大陸に含まれない地名は?", ["インド大陸","ユーラシア大陸","北アメリカ大陸","南極大陸"], 0, 1],
+["赤道が通らない大陸は?", ["ヨーロッパ大陸","アフリカ大陸","南アメリカ大陸","アジア大陸"], 0, 1],
+["世界で一番長い川は?", ["ナイル川","アマゾン川","長江","ミシシッピ川"], 0, 1],
+["世界で一番高い山は?", ["エベレスト","キリマンジャロ","モンブラン","富士山"], 0, 1],
+["世界で一番広い海は?", ["太平洋","大西洋","インド洋","北極海"], 0, 1],
+
+// ===== レベル2: 歴史基礎(縄文〜江戸) =====
+["縄文時代の特徴的な土器は?", ["縄文土器","弥生土器","土師器","須恵器"], 0, 2],
+["稲作が広まったのは何時代か?", ["弥生時代","縄文時代","古墳時代","飛鳥時代"], 0, 2],
+["邪馬台国の女王は誰か?", ["卑弥呼","推古天皇","持統天皇","神功皇后"], 0, 2],
+["大和政権の頃に作られた巨大な墓を何というか?", ["古墳","神社","寺院","城"], 0, 2],
+["聖徳太子が制定した役人の心構えは?", ["十七条の憲法","大宝律令","御成敗式目","武家諸法度"], 0, 2],
+["645年、蘇我氏を倒した事件は?", ["大化の改新(乙巳の変)","壬申の乱","応仁の乱","承久の乱"], 0, 2],
+["平城京が置かれた時代は?", ["奈良時代","平安時代","飛鳥時代","鎌倉時代"], 0, 2],
+["平安時代に都が置かれたのはどこか?", ["平安京(京都)","平城京(奈良)","難波宮(大阪)","鎌倉"], 0, 2],
+["「源氏物語」を書いたのは?", ["紫式部","清少納言","小野小町","和泉式部"], 0, 2],
+["1192年に鎌倉幕府を開いたのは?", ["源頼朝","源義経","足利尊氏","北条政子"], 0, 2],
+["鎌倉幕府で将軍を補佐した役職は?", ["執権","管領","老中","将軍"], 0, 2],
+["元軍が日本に攻めてきた出来事を何というか?", ["元寇","応仁の乱","壬申の乱","承久の乱"], 0, 2],
+["室町幕府を開いたのは?", ["足利尊氏","足利義満","足利義政","源頼朝"], 0, 2],
+["室町時代、金閣を建てたのは?", ["足利義満","足利義政","足利尊氏","織田信長"], 0, 2],
+["応仁の乱が起きたきっかけは?", ["将軍家の後継争い","天皇の即位争い","外国の侵略","農民の反乱"], 0, 2],
+["1467年から続いた戦乱の時代を何というか?", ["戦国時代","江戸時代","室町時代","南北朝時代"], 0, 2],
+["「天下布武」を掲げ室町幕府を滅ぼしたのは?", ["織田信長","豊臣秀吉","徳川家康","武田信玄"], 0, 2],
+["本能寺の変で織田信長を討ったのは?", ["明智光秀","豊臣秀吉","徳川家康","柴田勝家"], 0, 2],
+["豊臣秀吉が全国の田畑を調査した政策は?", ["太閣検地","楽市楽座","刀狩","参勤交代"], 0, 2],
+["豊臣秀吉が農民から武器を取り上げた政策は?", ["刀狩","太閣検地","楽市楽座","参勤交代"], 0, 2],
+["1600年、徳川家康が勝利した戦いは?", ["関ヶ原の戦い","大坂の陣","桶狭間の戦い","長篠の戦い"], 0, 2],
+["江戸幕府を開いたのは?", ["徳川家康","徳川家光","徳川秀忠","徳川綱吉"], 0, 2],
+["江戸幕府が大名を統制するために定めた法は?", ["武家諸法度","御成敗式目","十七条の憲法","大宝律令"], 0, 2],
+["大名が江戸と領地を1年交代で往復する制度は?", ["参勤交代","楽市楽座","刀狩","検地"], 0, 2],
+["江戸幕府の鎖国政策で交流が許されたヨーロッパの国は?", ["オランダ","イギリス","フランス","ドイツ"], 0, 2],
+["「東海道五十三次」を描いた浮世絵師は?", ["歌川広重","葛飾北斎","喜多川歌麿","東洲斎写楽"], 0, 2],
+["「富嶽三十六景」を描いたのは?", ["葛飾北斎","歌川広重","喜多川歌麿","東洲斎写楽"], 0, 2],
+["1853年、浦賀に来航したアメリカの人物は?", ["ペリー","ハリス","ビッドル","ザビエル"], 0, 2],
+["江戸幕府が倒れ、明治政府ができたのは何年か?", ["1868年","1853年","1600年","1192年"], 0, 2],
+["明治政府が「富国強兵」とともに進めた政策は?", ["殖産興業","鎖国","攘夷","公武合体"], 0, 2],
+["明治政府が藩を廃止して県を置いた政策は?", ["廃藩置県","版籍奉還","地租改正","秩禄処分"], 0, 2],
+["1889年に発布された憲法は?", ["大日本帝国憲法","日本国憲法","十七条の憲法","御成敗式目"], 0, 2],
+["江戸時代の身分制度で農民・職人・商人を指す言葉は?", ["士農工商","四民平等","公武合体","封建制度"], 0, 2],
+["室町時代に明と行った貿易を何というか?", ["勘合貿易","南蛮貿易","朱印船貿易","日宋貿易"], 0, 2],
+["江戸時代の改革「享保の改革」を行ったのは?", ["徳川吉宗","徳川家康","松平定信","水野忠邦"], 0, 2],
+["「寛政の改革」を行ったのは?", ["松平定信","徳川吉宗","水野忠邦","田沼意次"], 0, 2],
+["「天保の改革」を行ったのは?", ["水野忠邦","松平定信","徳川吉宗","田沼意次"], 0, 2],
+["武田信玄と上杉謙信が戦った有名な合戦は?", ["川中島の戦い","関ヶ原の戦い","桶狭間の戦い","長篠の戦い"], 0, 2],
+["織田信長が今川義元を破った戦いは?", ["桶狭間の戦い","川中島の戦い","関ヶ原の戦い","長篠の戦い"], 0, 2],
+["鉄砲を効果的に使い武田軍を破った戦いは?", ["長篠の戦い","桶狭間の戦い","川中島の戦い","関ヶ原の戦い"], 0, 2],
+
+// ===== レベル3: 近代史・公民 =====
+["1914年に始まった戦争は?", ["第一次世界大戦","第二次世界大戦","日露戦争","日清戦争"], 0, 3],
+["1939年に始まった戦争は?", ["第二次世界大戦","第一次世界大戦","日露戦争","日中戦争"], 0, 3],
+["太平洋戦争が終わったのは何年か?", ["1945年","1941年","1950年","1939年"], 0, 3],
+["1951年、日本が連合国と結んだ条約は?", ["サンフランシスコ平和条約","ポツダム宣言","日米安全保障条約","下関条約"], 0, 3],
+["日本国憲法が公布されたのは何年か?", ["1946年","1945年","1947年","1950年"], 0, 3],
+["日本国憲法の三大原則に含まれないのは?", ["天皇主権","国民主権","基本的人権の尊重","平和主義"], 0, 3],
+["国の権力を立法・行政・司法に分ける仕組みは?", ["三権分立","二院制","議院内閣制","地方自治"], 0, 3],
+["日本の国会が持つ権力は?", ["立法権","行政権","司法権","外交権のみ"], 0, 3],
+["内閣が持つ権力は?", ["行政権","立法権","司法権","天皇大権"], 0, 3],
+["裁判所が持つ権力は?", ["司法権","立法権","行政権","外交権"], 0, 3],
+["日本の国会は何と何からなるか?", ["衆議院と参議院","上院と下院","貴族院と衆議院","県議会と市議会"], 0, 3],
+["衆議院の任期は何年か?", ["4年","6年","3年","5年"], 0, 3],
+["参議院の任期は何年か?", ["6年","4年","3年","5年"], 0, 3],
+["住民が直接政治に参加する権利に含まれないのは?", ["内閣総理大臣の指名","条例の制定改廃の請求","議会の解散請求","首長の解職請求"], 0, 3],
+["三審制とは何か?", ["裁判を3回まで受けられる制度","3人の裁判官が審理する制度","3つの裁判所がある制度","3年で判決が出る制度"], 0, 3],
+["日本国憲法における国民の三大義務に含まれないのは?", ["選挙の義務","教育を受けさせる義務","勤労の義務","納税の義務"], 0, 3],
+["GDPとは何の略か?", ["国内総生産","国民総生産","国際貿易量","政府支出"], 0, 3],
+["第一次世界大戦後にできた国際組織は?", ["国際連盟","国際連合","EU","NATO"], 0, 3],
+["第二次世界大戦後にできた国際組織は?", ["国際連合","国際連盟","EU","ASEAN"], 0, 3],
+["フランス革命が起きたのは何世紀か?", ["18世紀","16世紀","19世紀","20世紀"], 0, 3],
+["フランス革命で発表された宣言は?", ["人権宣言","権利章典","独立宣言","ポツダム宣言"], 0, 3],
+["アメリカ独立戦争が起きたのは何世紀か?", ["18世紀","17世紀","19世紀","16世紀"], 0, 3],
+["産業革命が始まった国は?", ["イギリス","フランス","ドイツ","アメリカ"], 0, 3],
+["円高になると輸出企業にどんな影響があるか?", ["不利になりやすい","必ず有利になる","影響はない","輸入が減る"], 0, 3],
+["太平洋を囲む経済連携の略称は?", ["TPP","EU","ASEAN","WTO"], 0, 3],
+["ヨーロッパの経済・政治統合組織の略称は?", ["EU","TPP","ASEAN","NATO"], 0, 3],
+["1972年に日本に返還された地域は?", ["沖縄","小笠原諸島","台湾","北方領土"], 0, 3],
+["日清戦争が起きたのはおよそ何年代か?", ["1890年代","1900年代","1860年代","1920年代"], 0, 3],
+["日露戦争が起きたのはおよそ何年代か?", ["1900年代","1890年代","1910年代","1920年代"], 0, 3],
+["日中戦争のきっかけとなった事件は?", ["盧溝橋事件","満州事変","柳条湖事件","西安事件"], 0, 3],
+["1931年、日本が満州を占領するきっかけとなった事件は?", ["満州事変(柳条湖事件)","盧溝橋事件","二・二六事件","五・一五事件"], 0, 3],
+["1923年に関東地方を襲った大災害は?", ["関東大震災","阪神大震災","東日本大震災","濃尾地震"], 0, 3],
+["大正時代に民主主義を求めた風潮を何というか?", ["大正デモクラシー","明治維新","文明開化","自由民権運動"], 0, 3],
+["明治初期、政府に自由や権利を求めた運動は?", ["自由民権運動","大正デモクラシー","尊王攘夷運動","倒幕運動"], 0, 3],
+["第二次世界大戦後、日本を占領した連合国軍の最高司令官は?", ["マッカーサー","アイゼンハワー","ルーズベルト","トルーマン"], 0, 3],
+["バリアフリーやノーマライゼーションに関係する考え方は?", ["共生社会","資本主義","封建制度","鎖国"], 0, 3],
+["地方自治で住民が条例の制定を求める権利は?", ["直接請求権","選挙権","被選挙権","請願権"], 0, 3],
+["世界人権宣言が採択されたのは何年か?", ["1948年","1945年","1950年","1939年"], 0, 3],
+["SDGsとは何の略か?", ["持続可能な開発目標","世界貿易機関","国際通貨基金","国連教育科学文化機関"], 0, 3],
+];
+
+/* ====================== 仲間武将ロースター ====================== */
+const ALLY_ROSTER = {
+  common: [["足軽","🪖"],["弓兵","🏹"],["鉄砲隊","💥"],["旗持ち","🚩"],["槍兵","🔱"]],
+  rare:   [["真田幸村","🐺"],["伊達政宗","🦅"],["黒田官兵衛","🦉"],["直江兼続","🐉"],["本多忠勝","🐯"]],
+  legendary:[["織田信長","🔥"],["豊臣秀吉","🐵"],["徳川家康","🐢"],["武田信玄","🐲"],["上杉謙信","❄️"]],
+};
+const BOSS_NAMES = ["関ヶ原の戦い","桶狭間の戦い","川中島の戦い","本能寺の変","長篠の戦い","大坂の陣"];
+
+/* ====================== 状態管理 ====================== */
+const STORAGE_KEY = "tenkaQuestState_v1";
+let state = loadState();
+function loadState(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return { xp:0, level:1, streak:0, levelStats:{}, qStats:{}, wrongPool:[], badges:[], collection:{} };
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function xpForLevel(lv){ return 50 * lv; }
+function addXp(amount){
+  state.xp += amount;
+  let need = xpForLevel(state.level);
+  while(state.xp >= need){
+    state.xp -= need; state.level += 1; need = xpForLevel(state.level);
+    unlockBadge("level"+state.level, `レベル${state.level}に到達!`);
+    setTimeout(()=>confettiBurst(true), 150);
+  }
+  saveState(); renderHeader();
+}
+const BADGE_DEFS = {
+  "first_quiz":"初陣を制す","level2":"レベル2に到達!","level5":"レベル5に到達!","level10":"レベル10に到達!",
+  "combo5":"5連勝!","combo10":"10連勝!","perfect":"完全勝利(全問正解)",
+  "lv1_master":"地理マスター(80問正解)","lv2_master":"中世史マスター(80問正解)","lv3_master":"近代史マスター(80問正解)",
+};
+let newlyUnlocked = [];
+function unlockBadge(key, label){
+  if(!state.badges.includes(key)){ state.badges.push(key); newlyUnlocked.push(label || BADGE_DEFS[key] || key); saveState(); }
+}
+function getLevelStat(lv){ if(!state.levelStats[lv]) state.levelStats[lv]={correct:0,total:0}; return state.levelStats[lv]; }
+function getQStat(q){ if(!state.qStats[q]) state.qStats[q]={correct:0,wrong:0}; return state.qStats[q]; }
+
+function renderHeader(){
+  document.getElementById("levelNum").textContent = state.level;
+  document.getElementById("streakNum").textContent = state.streak;
+  const need = xpForLevel(state.level);
+  document.getElementById("xpbar").style.width = Math.min(100, (state.xp/need)*100) + "%";
+  renderRank();
+}
+
+/* ===== 身分(階級)成長 ===== */
+const RANKS = [
+  {min:1,  emoji:"🪖", name:"足軽"},
+  {min:3,  emoji:"⚔️", name:"武士"},
+  {min:6,  emoji:"🛡️", name:"武将"},
+  {min:10, emoji:"🏯", name:"大名"},
+  {min:15, emoji:"👑", name:"天下人"},
+];
+function getRank(level){
+  let cur = RANKS[0];
+  for(const r of RANKS){ if(level>=r.min) cur=r; }
+  return cur;
+}
+function renderRank(){
+  const rank = getRank(state.level);
+  const el = document.getElementById("rankEmoji");
+  if(el){
+    el.textContent = rank.emoji;
+    document.getElementById("rankName").textContent = rank.name + "(Lv." + state.level + ")";
+    const need = xpForLevel(state.level);
+    document.getElementById("rankBar").style.width = Math.min(100, (state.xp/need)*100) + "%";
+  }
+}
+function bumpRank(){
+  const el = document.getElementById("rankEmoji");
+  if(!el) return;
+  el.classList.add("bump");
+  setTimeout(()=>el.classList.remove("bump"), 300);
+}
+
+/* ===== 紙吹雪(陣幕の旗が舞うイメージ:金・赤・黒) ===== */
+function confettiBurst(big){
+  const canvas = document.getElementById("confettiCanvas");
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext("2d");
+  const colors = ["#b9892c","#8a1f1f","#2b2622","#e3b94f","#c0392b"];
+  const count = big ? 90 : 26;
+  const particles = Array.from({length:count}, ()=>({
+    x: canvas.width/2 + (Math.random()-0.5)*120,
+    y: canvas.height*0.35,
+    vx: (Math.random()-0.5)* (big?9:5),
+    vy: Math.random()*-6 - (big?5:2),
+    size: Math.random()*6+4,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    rot: Math.random()*360,
+    vr: (Math.random()-0.5)*10,
+  }));
+  let frame = 0;
+  const maxFrames = big ? 90 : 55;
+  function tick(){
+    frame++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.vy += 0.18; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - frame/maxFrames);
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+      ctx.restore();
+    });
+    if(frame < maxFrames){ requestAnimationFrame(tick); }
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); }
+  }
+  tick();
+}
+function spawnFloatScore(text){
+  const el = document.createElement("div");
+  el.className = "float-score";
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+/* ===== 仲間武将コレクション ===== */
+const RARITY_BY_LEVEL = {1:"common", 2:"rare", 3:"legendary"};
+function rollAlly(rarity){
+  const pool = ALLY_ROSTER[rarity];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function addAlly(rarity){
+  const [name, icon] = rollAlly(rarity);
+  const key = rarity+":"+name;
+  if(!state.collection[key]) state.collection[key] = {name, icon, rarity, count:0};
+  state.collection[key].count++;
+  saveState();
+  return state.collection[key];
+}
+function openCollection(){ showScreen("collection"); renderCollection(); }
+function renderCollection(){
+  const entries = Object.values(state.collection);
+  document.getElementById("collectionBig").textContent = `${entries.length}種`;
+  document.getElementById("collectionCount").textContent = `${entries.length}種`;
+  const counts = {common:0, rare:0, legendary:0};
+  entries.forEach(c=>counts[c.rarity]++);
+  document.getElementById("collCommon").textContent = counts.common;
+  document.getElementById("collRare").textContent = counts.rare;
+  document.getElementById("collLegend").textContent = counts.legendary;
+
+  const grid = document.getElementById("cardGrid");
+  grid.innerHTML = "";
+  if(entries.length===0){
+    grid.innerHTML = `<div class="empty-note" style="grid-column:1/5;">クイズに正解して仲間を増やそう</div>`;
+    return;
+  }
+  const order = {legendary:0, rare:1, common:2};
+  entries.sort((a,b)=>order[a.rarity]-order[b.rarity]);
+  entries.forEach(c=>{
+    const div = document.createElement("div");
+    div.className = "word-card " + c.rarity;
+    div.innerHTML = `<span class="wc-ic">${c.icon}</span><span class="wc-word">${c.name}</span><div class="wc-dup">×${c.count}</div>`;
+    grid.appendChild(div);
+  });
+}
+
+/* ====================== ホーム画面 ====================== */
+const LEVEL_INFO = {1:{name:"地理の国",icon:"🗺️"},2:{name:"中世史の国",icon:"🏯"},3:{name:"近代史の国",icon:"🏛️"}};
+function renderHome(){
+  const grid = document.getElementById("levelGrid");
+  grid.innerHTML = "";
+  [1,2,3].forEach(lv=>{
+    const info = LEVEL_INFO[lv];
+    const stat = getLevelStat(lv);
+    const acc = stat.total>0 ? Math.round(stat.correct/stat.total*100) : null;
+    const count = QBANK.filter(q=>q[3]===lv).length;
+    const div = document.createElement("button");
+    div.className = "level-card";
+    div.onclick = ()=>startQuiz(lv);
+    div.innerHTML = `
+      ${acc!==null ? `<div class="acc">${acc}%</div>` : ""}
+      <span class="ic">${info.icon}</span>
+      <div class="name">${info.name}</div>
+      <div class="meta">${count}問収録</div>
+    `;
+    grid.appendChild(div);
+  });
+
+  document.getElementById("reviewCount").textContent = state.wrongPool.length;
+  document.getElementById("reviewBtn").style.opacity = state.wrongPool.length ? "1" : "0.5";
+
+  const collCount = Object.keys(state.collection).length;
+  document.getElementById("collectionCount").textContent = `${collCount}種`;
+
+  const badgeGrid = document.getElementById("badgeGrid");
+  badgeGrid.innerHTML = "";
+  const earned = state.badges.slice(-4).reverse();
+  if(earned.length===0){
+    badgeGrid.innerHTML = `<div class="empty-note" style="grid-column:1/3;">クイズに挑戦して武功を集めよう</div>`;
+  } else {
+    earned.forEach(key=>{
+      const div = document.createElement("div");
+      div.className = "level-card";
+      div.innerHTML = `<span class="ic">🏆</span><div class="name" style="font-size:13px;">${BADGE_DEFS[key]||key}</div>`;
+      badgeGrid.appendChild(div);
+    });
+  }
+  renderHeader();
+}
+
+/* ====================== クイズロジック ====================== */
+let session = null;
+let timerInterval = null;
+let answered = false;
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function buildQuestionSet(target, count){
+  let pool;
+  if(target==="all"){ pool = QBANK; }
+  else if(target==="weak"){
+    pool = QBANK.filter(q=>{ const s=getQStat(q[0]); return s.wrong>0 && s.wrong>=s.correct; });
+    if(pool.length < 5) pool = QBANK;
+  } else {
+    pool = QBANK.filter(q=>q[3]===target);
+  }
+  return shuffle(pool).slice(0, Math.min(count, pool.length));
+}
+
+function startQuiz(target){
+  const qs = buildQuestionSet(target, 10);
+  session = {target, questions:qs, idx:0, correctCount:0, maxCombo:0, combo:0, mode:"normal"};
+  showScreen("quiz"); renderQuestion();
+}
+function startReview(){
+  if(state.wrongPool.length===0) return;
+  const qs = state.wrongPool.map(w=>[w.q, w.choices, w.ansIdx, w.lv]);
+  session = {target:"review", questions:qs, idx:0, correctCount:0, maxCombo:0, combo:0, mode:"review"};
+  showScreen("quiz"); renderQuestion();
+}
+function retrySame(){ if(session.mode==="review"){ startReview(); } else { startQuiz(session.target); } }
+function showScreen(name){
+  document.querySelectorAll(".screen").forEach(el=>el.classList.remove("active"));
+  document.getElementById("screen-"+name).classList.add("active");
+}
+
+function renderQuestion(){
+  answered = false;
+  clearInterval(timerInterval);
+  const total = session.questions.length;
+  document.getElementById("qcounter").textContent = `${session.idx+1} / ${total}`;
+  document.getElementById("progressFill").style.width = (session.idx/total*100)+"%";
+  const [qtext, rawChoices, rawAnsIdx] = session.questions[session.idx];
+  const order = shuffle([0,1,2,3]);
+  const choices = order.map(i=>rawChoices[i]);
+  const ansIdx = order.indexOf(rawAnsIdx);
+  session.questions[session.idx] = [qtext, choices, ansIdx, session.questions[session.idx][3]];
+  document.getElementById("qtext").textContent = qtext;
+
+  const isBoss = (session.idx === total-1) && total>=5 && session.mode!=="review";
+  session.isBoss = isBoss;
+  const banner = document.getElementById("bossBanner");
+  const qcardEl = document.getElementById("qcard");
+  if(isBoss){
+    const bossName = BOSS_NAMES[Math.floor(Math.random()*BOSS_NAMES.length)];
+    banner.textContent = `⚔️ 合戦「${bossName}」!勝利で大量の武功とレア武将!`;
+  }
+  banner.classList.toggle("show", isBoss);
+  qcardEl.classList.toggle("boss", isBoss);
+
+  const choicesEl = document.getElementById("choices");
+  choicesEl.innerHTML = "";
+  const labels = ["A","B","C","D"];
+  choices.forEach((c, i)=>{
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.innerHTML = `<span class="lt">${labels[i]}</span><span>${c}</span>`;
+    btn.onclick = ()=>selectAnswer(i, ansIdx, qtext, choices);
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById("feedbackBar").classList.remove("show","ok","ng");
+
+  let timeLeft = isBoss ? 18 : 12;
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent = timeLeft; timerEl.classList.remove("danger");
+  timerInterval = setInterval(()=>{
+    timeLeft--; timerEl.textContent = timeLeft;
+    if(timeLeft<=5) timerEl.classList.add("danger");
+    if(timeLeft<=0){ clearInterval(timerInterval); if(!answered) selectAnswer(-1, ansIdx, qtext, choices); }
+  }, 1000);
+}
+
+function selectAnswer(chosenIdx, ansIdx, qtext, choices){
+  if(answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const allBtns = document.querySelectorAll(".choice-btn");
+  allBtns.forEach(b=>b.disabled = true);
+  const isCorrect = chosenIdx === ansIdx;
+
+  if(allBtns[ansIdx]) allBtns[ansIdx].classList.add("correct");
+  if(!isCorrect && chosenIdx>=0 && allBtns[chosenIdx]) allBtns[chosenIdx].classList.add("wrong");
+
+  const fb = document.getElementById("feedbackBar");
+  const fbText = document.getElementById("feedbackText");
+  fb.classList.add("show");
+  const lv = session.questions[session.idx][3];
+  const qstat = getQStat(qtext);
+  const isBoss = session.isBoss;
+
+  if(isCorrect){
+    fb.classList.add("ok"); fb.classList.remove("ng");
+    session.combo++; session.maxCombo = Math.max(session.maxCombo, session.combo);
+    session.correctCount++;
+    state.streak++;
+    qstat.correct++;
+    let bonus = session.combo>=10?20:session.combo>=5?12:5;
+    if(isBoss) bonus *= 3;
+    fbText.textContent = (isBoss? "🏆 合戦勝利!" : "正解!") + `(+${bonus}武功)` + (session.combo>=3?` 🔥${session.combo}連勝!`:"");
+    addXp(bonus);
+    spawnFloatScore("+"+bonus);
+    bumpRank();
+    confettiBurst(isBoss);
+    if(session.combo===5){ unlockBadge("combo5"); flashCombo("5連勝!"); }
+    if(session.combo===10){ unlockBadge("combo10"); flashCombo("10連勝!"); }
+
+    const rarity = RARITY_BY_LEVEL[lv] || "common";
+    const ally = addAlly(isBoss ? "legendary" : rarity);
+    setTimeout(()=>flashCombo(`${ally.icon} ${ally.name} が仲間になった!`), isBoss?700:300);
+
+    if(session.mode!=="review"){
+      const lstat = getLevelStat(lv); lstat.correct++; lstat.total++;
+      if(lstat.correct>=80) unlockBadge("lv"+lv+"_master");
+    } else {
+      state.wrongPool = state.wrongPool.filter(w=>w.q!==qtext);
+    }
+  } else {
+    fb.classList.add("ng"); fb.classList.remove("ok");
+    session.combo = 0; state.streak = 0;
+    qstat.wrong++;
+    fbText.textContent = (chosenIdx===-1 ? "時間切れ...正解は「" : "敗北...正解は「") + choices[ansIdx] + "」";
+    if(session.mode!=="review"){
+      const lstat = getLevelStat(lv); lstat.total++;
+      const exists = state.wrongPool.some(w=>w.q===qtext);
+      if(!exists) state.wrongPool.push({q:qtext, choices, ansIdx, lv});
+    }
+  }
+  saveState();
+}
+
+function flashCombo(text){
+  const pop = document.getElementById("comboPop");
+  pop.textContent = "⚡ "+text; pop.classList.add("show");
+  setTimeout(()=>pop.classList.remove("show"), 1300);
+}
+
+function nextQuestion(){
+  if(session.idx+1 < session.questions.length){ session.idx++; renderQuestion(); }
+  else { finishSession(); }
+}
+
+function finishSession(){
+  newlyUnlocked = [];
+  if(!state.badges.includes("first_quiz")) unlockBadge("first_quiz");
+  if(session.correctCount === session.questions.length){ unlockBadge("perfect"); setTimeout(()=>confettiBurst(true), 200); }
+  saveState();
+
+  document.getElementById("resultScore").textContent = `${session.correctCount}/${session.questions.length}`;
+  const acc = Math.round(session.correctCount/session.questions.length*100);
+  document.getElementById("resultAcc").textContent = acc+"%";
+  document.getElementById("resultXp").textContent = "+"+(session.correctCount*5 + (session.maxCombo>=10?20:session.maxCombo>=5?12:0));
+  document.getElementById("resultCombo").textContent = session.maxCombo;
+
+  const area = document.getElementById("badgeUnlockArea");
+  area.innerHTML = "";
+  newlyUnlocked.forEach(label=>{
+    const div = document.createElement("div");
+    div.className = "badge-unlock";
+    div.innerHTML = `🏆 <span>新しい武功: ${label}</span>`;
+    area.appendChild(div);
+  });
+
+  showScreen("result");
+}
+
+function confirmExit(){ clearInterval(timerInterval); goHome(); }
+function goHome(){ showScreen("home"); renderHome(); }
+
+renderHome();
+</script>
+</body>
+</html>
